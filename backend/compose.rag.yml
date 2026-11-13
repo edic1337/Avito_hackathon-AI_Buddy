@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.1-pg17
+    environment:
+      POSTGRES_DB: avito_buddy
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - rag_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d avito_buddy"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  embedder:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9
+    command: ["--model-id", "Qwen/Qwen3-Embedding-0.6B", "--dtype", "float32"]
+    ports:
+      - "127.0.0.1:8081:80"
+    volumes:
+      - rag_models:/data
+volumes:
+  rag_postgres:
+  rag_models:

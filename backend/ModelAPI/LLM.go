@@ -33,11 +33,22 @@ type chatResponse struct {
 
 // Ask отправляет запрос модели и возвращает её ответ.
 func Ask(message string) (string, error) {
+	return AskContext(context.Background(), message)
+}
+
+func AskContext(ctx context.Context, message string) (string, error) {
+	return askMessages(ctx, []apiMessage{{Role: "user", Content: message}})
+}
+
+func askMessages(ctx context.Context, messages []apiMessage) (string, error) {
 	apiURL := os.Getenv("OPENROUTER_API_URL")
 	model := os.Getenv("OPENROUTER_MODEL")
 	apiKey := os.Getenv("OPENROUTER_API_KEY")
 	if apiKey == "" {
 		return "", fmt.Errorf("OPENROUTER_API_KEY is not set")
+	}
+	if apiURL == "" || model == "" {
+		return "", fmt.Errorf("OPENROUTER_API_URL and OPENROUTER_MODEL must be set")
 	}
 
 	var request chatRequest
@@ -45,19 +56,12 @@ func Ask(message string) (string, error) {
 	request.Model = model
 	request.Reasoning.Enabled = true
 
-	request.Messages = []apiMessage{
-		{
-			Role:    "user",
-			Content: message,
-		},
-	}
+	request.Messages = messages
 
 	body, err := json.Marshal(request)
 	if err != nil {
 		return "", err
 	}
-
-	ctx := context.Background()
 
 	req, err := http.NewRequestWithContext(
 		ctx,
