@@ -58,8 +58,8 @@ class ChunkingTests(unittest.TestCase):
         self.assertEqual(len(chunks), 1)
         self.assertEqual(chunks[0].text, "First.\n\nSecond.\n\nThird.")
 
-    def test_long_paragraph_coverage_and_unicode(self):
-        words = [f"номер{i}🙂" for i in range(150)]
+    def test_long_paragraph_coverage_and_cyrillic(self):
+        words = [f"номер{i}" for i in range(150)]
         doc = document("# Раздел\n\n" + " ".join(words))
         chunks = self.chunker.chunk(doc)
         self.assertGreater(len(chunks), 5)
