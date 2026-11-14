@@ -1,0 +1,4 @@
+# PyTorch CUDA is installed separately from the official PyTorch wheel index.
+-r requirements-corpus.txt
+sentence-transformers==5.5.1
+transformers==5.5.4

@@ -1,0 +1,25 @@
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.cache/
+.hf-cache/
+
+# Local credentials
+.env
+.env.*
+!.env.example
+
+# Generated corpus exports and resumable computation
+/embeddings/*.json
+/embeddings.json
+*.checkpoints/
+*.log
+
+# Downloaded model weights
+*.safetensors
+*.pt
+*.pth
+*.onnx
