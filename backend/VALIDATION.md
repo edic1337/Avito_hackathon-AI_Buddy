@@ -1,0 +1,59 @@
+# Проверки реализации
+
+Дата: 14 ноября 2026. Ветка: Backend. Go 1.27.4, Windows/amd64.
+
+| Проверка | Результат |
+| --- | --- |
+| `go build ./...` | Успешно |
+| `go vet ./...` | Успешно |
+| Unit-тесты `rag`, сборка js/wasm и запуск Node | 8 тестовых функций с подслучаями прошли |
+| Unit-тесты `ModelAPI`, js/wasm и Node | 3 тестовые функции с подслучаями прошли |
+| Миграции и SQL через PGlite + pgvector | Прошли 11 групп проверок, включая загрузку 50 реальных векторов из ветки RAG |
+| Нативный `go test ./...` | Тесты компилируются, запуск `.test.exe` блокируется Windows Application Control |
+| `go test -coverprofile=coverage.out ./...` | Windows блокирует `cover.exe`; достоверного отчёта покрытия нет |
+| Нативные pgx integration/race tests | Не выполнены из-за блокировки тестовых бинарников |
+| Docker compose, настоящий HTTP-инференс Qwen, OpenRouter | Не запускались; модели и внешние ключи не использовались |
+
+Unit-тесты проверяют HTTP JSON/заголовки, порядок по index, батчи, Qwen query
+префикс, нормализацию, некорректные ответы, таймаут/отмену, конфигурацию, импорт,
+отказ при неизвестной роли, пустой контекст без LLM и формат сообщений модели.
+В WASM используется штатная внутренняя сеть Go для httptest. Это исполнение Go
+тестов на другом target, а не проверка Windows networking или pgx wire protocol.
+
+SQL-проверки используют PGlite 0.5.16 и pglite-pgvector 0.0.17, извлекают запросы
+из `rag/store.go` и `rag/search.go`, выполняют обе миграции дважды. Проверены:
+профиль коллекции, повторный upsert без дублей, ранжирование RRF, role/team ACL,
+cosine threshold, candidate limit, rollback после SQL-ошибки, деактивация, импорт
+и поиск по всем 50 векторам из `origin/RAG:embeddings.json`.
+Это не заменяет запуск pgx-тестов с настоящим PostgreSQL и конкурентными соединениями.
+
+## Повторение ограниченных проверок на Windows
+
+Обычный путь и команды покрытия находятся в README. Если нативное выполнение
+запрещено политикой хоста, можно отдельно повторить unit-тесты:
+
+```powershell
+# Из backend, Go и Node должны находиться в PATH.
+$ragGoRoot = go env GOROOT
+$env:GOOS = 'js'
+$env:GOARCH = 'wasm'
+go test -c -o rag.test.wasm ./rag
+go test -c -o modelapi.test.wasm ./ModelAPI
+node scripts/run-wasm.cjs "$ragGoRoot/lib/wasm/wasm_exec_node.js" rag.test.wasm '-test.v' '-test.timeout=30s'
+node scripts/run-wasm.cjs "$ragGoRoot/lib/wasm/wasm_exec_node.js" modelapi.test.wasm '-test.v' '-test.timeout=30s'
+Remove-Item Env:GOOS, Env:GOARCH
+```
+
+Для SQL smoke test достаточно Node, npm и локального ref `origin/RAG`:
+
+```powershell
+$ragSqlRuntime = Join-Path $env:TEMP 'avito-rag-pgtest'
+npm install --prefix $ragSqlRuntime --ignore-scripts @electric-sql/pglite@0.5.16 @electric-sql/pglite-pgvector@0.0.17
+node scripts/verify-sql.cjs $ragSqlRuntime
+```
+
+Пакеты Node нужны только для этого дополнительного теста; рабочий Go backend
+их не использует. Тест создаёт БД в памяти и не подключается к рабочей PostgreSQL.
+Воспроизводимая цель для команды перед сдачей: запустить стандартный `go test`
+с `TEST_DATABASE_URL`, измерить покрытие (требование кейса >80%) и проверить
+полный сценарий на настоящих сервисах. Процент покрытия здесь не заявляется.
