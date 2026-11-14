@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS rag.documents (
     title TEXT NOT NULL CHECK (length(btrim(title)) > 0),
     content TEXT NOT NULL,
     source_url TEXT NOT NULL CHECK (length(btrim(source_url)) > 0),
-    origin TEXT NOT NULL CHECK (origin IN ('public', 'synthetic')),
+    origin TEXT NOT NULL CHECK (origin IN ('public', 'synthetic', 'provided')),
     min_role TEXT NOT NULL CHECK (min_role IN ('intern', 'buddy', 'manager')),
     team TEXT CHECK (team IS NULL OR length(btrim(team)) > 0),
     tags TEXT[] NOT NULL DEFAULT '{}',

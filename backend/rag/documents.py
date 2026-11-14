@@ -33,8 +33,8 @@ def parse_document(text: str, *, source_path: str = "") -> Document:
     for field in ("title", "source_url", "origin", "min_role"):
         if not isinstance(metadata.get(field), str) or not metadata[field].strip():
             raise ValueError(f"Нужно непустое строковое поле {field}")
-    if metadata["origin"] not in ("public", "synthetic"):
-        raise ValueError("origin должен быть public или synthetic")
+    if metadata["origin"] not in ("public", "synthetic", "provided"):
+        raise ValueError("origin должен быть public, synthetic или provided")
     if metadata["min_role"] not in ROLE_RANKS:
         raise ValueError("Неизвестный min_role")
     team = metadata.get("team")

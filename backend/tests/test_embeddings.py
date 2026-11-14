@@ -177,13 +177,13 @@ class EmbeddingTests(unittest.IsolatedAsyncioTestCase):
 class ConfigTests(unittest.TestCase):
     def test_defaults_and_local_embedding_environment(self):
         with patch.dict(os.environ, {}, clear=True):
-            self.assertEqual(RagConfig.from_env(), RagConfig())
+            self.assertEqual(RagConfig.from_env(env_file=None), RagConfig())
         with patch.dict(os.environ, {
             "EMBEDDING_MODEL": "/models/qwen",
             "EMBEDDING_DEVICE": "cuda",
             "EMBEDDING_BATCH_SIZE": "4",
         }, clear=True):
-            config = RagConfig.from_env()
+            config = RagConfig.from_env(env_file=None)
             self.assertEqual(config.embedding_model, "/models/qwen")
             self.assertEqual(config.embedding_device, "cuda")
             self.assertEqual(config.embedding_batch_size, 4)

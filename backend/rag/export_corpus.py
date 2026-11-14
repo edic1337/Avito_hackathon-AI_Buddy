@@ -46,7 +46,10 @@ def load_source(path, public_habr=False):
     """Public access is explicit and restricted to the downloaded Habr corpus."""
     raw = path.read_text(encoding="utf-8-sig")
     if not public_habr:
-        return parse_document(raw, source_path=str(path)), {}
+        document = parse_document(raw, source_path=str(path))
+        lines = raw.splitlines(keepends=True)
+        end = next(i for i in range(1, len(lines)) if lines[i].strip() in ("---", "..."))
+        return document, yaml.safe_load("".join(lines[1:end]))
     lines = raw.splitlines(keepends=True)
     if not lines or lines[0].strip() != "---":
         raise ValueError("Public Habr input requires YAML metadata")
@@ -219,6 +222,7 @@ async def run(args):
     revision=getattr(tokenizer,'init_kwargs',{}).get('_commit_hash')
     chunker=CorpusChunker(tokenizer,target_tokens=config.chunk_target_tokens,max_tokens=config.chunk_max_tokens,overlap_tokens=config.chunk_overlap_tokens)
     collection=collection_config(config,revision,args.chunks_only)
+    collection["name"] = getattr(args, "collection_name", "avito-habr")
     checkpoint_dir=output.parent/(output.stem+'.checkpoints');checkpoint_dir.mkdir(parents=True,exist_ok=True)
     embedder=QwenEmbedder(config);done=[];errors=[];started=time.monotonic();total_chunks=0
     for index,path in enumerate(files,1):
@@ -267,6 +271,7 @@ def main():
     parser.add_argument('--input',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--public-habr',action='store_true',help='Explicitly import full public Avito Habr articles with intern access')
+    parser.add_argument('--collection-name',default='avito-habr',help='Collection identity stored in the export')
     parser.add_argument('--chunks-only',action='store_true',help='Skip embeddings; output is NOT ready for vector DB import')
     parser.add_argument('--resume',action='store_true',help='Reuse checkpoints with matching input and settings')
     parser.add_argument('--offline',action='store_true',help='Use cached tokenizer; set HF_HUB_OFFLINE=1 for cached model too')
@@ -276,6 +281,7 @@ def main():
     parser.add_argument('--fail-fast',action='store_true')
     args=parser.parse_args()
     if args.threads<1 or (args.limit is not None and args.limit<1):parser.error('threads and limit must be positive')
+    if not args.collection_name.strip():parser.error('collection-name must not be blank')
     if args.output.suffix.lower()!='.json' or args.output.is_dir():parser.error('--output must be a .json file')
     raise SystemExit(asyncio.run(run(args)))
 

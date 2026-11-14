@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Literal, Union
 
 RoleType = Literal["intern", "buddy", "manager"]
-OriginType = Literal["public", "synthetic"]
+OriginType = Literal["public", "synthetic", "provided"]
 OutcomeType = Literal["answered", "no_answer", "degraded"]
 
 ROLE_RANKS: dict[str, int] = {
