@@ -57,3 +57,20 @@ node scripts/verify-sql.cjs $ragSqlRuntime
 Воспроизводимая цель для команды перед сдачей: запустить стандартный `go test`
 с `TEST_DATABASE_URL`, измерить покрытие (требование кейса >80%) и проверить
 полный сценарий на настоящих сервисах. Процент покрытия здесь не заявляется.
+
+## Проверка на ветке Date: реальная PostgreSQL
+
+14 ноября 2026 выполнена отдельная проверка по задаче БД:
+
+| Проверка | Результат |
+| --- | --- |
+| PostgreSQL с pgvector | `pgvector/pgvector:0.8.1-pg17`, БД `avito_buddy`, healthcheck прошёл |
+| Порт хоста | `127.0.0.1:65432`; публикация на 5432 и 55432 запрещена политикой Windows |
+| `go run ./cmd/rag migrate` | обе миграции выполнены в Go 1.27.4 контейнере; созданы `rag.collections`, `rag.documents`, `rag.chunks`; `token_count` допускает NULL |
+| Права `avito_buddy_app` | connect, usage схемы, DML трёх таблиц и USAGE identity-последовательностей подтверждены запросами к PostgreSQL |
+| Go CLI `import` | реальный экспорт загружен приложенческой ролью; первая и повторная загрузки вернули document ID `1` |
+| Итог данных | один документ `playbook/ds-skills.md`, 50 чанков, metadata `synthetic` / `intern` / `team=NULL` |
+
+Go CLI запускался во временном Go 1.27.4 контейнере, потому что Go и `psql` не
+установлены на хосте. Полный набор Go unit/integration-тестов на этой ветке
+отдельно не запускался.
