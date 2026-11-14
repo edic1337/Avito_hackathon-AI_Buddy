@@ -1,5 +1,8 @@
 # Go backend: эмбеддинги и RAG
 
+HTTP-обработчик `POST /question`, авторизация и подключение к frontend:
+[FrontendAPI/README.md](FrontendAPI/README.md).
+
 Модуль `GO` (имя существующего go.mod сохранено), Go 1.27+. Разделение:
 
 - `rag.HTTPEmbedder`: HTTP-инференс Qwen, батчи, нормализация 1024-мерных векторов;
@@ -180,8 +183,10 @@ go tool cover '-html=coverage.out' '-o=coverage.html'
 
 ## Границы этой задачи
 
-Реализована библиотека Go и CLI. HTTP/SSE API, авторизация, frontend, чек-лист
-адаптации, mock корпоративных действий и reranker остаются интеграцией команды.
+Реализованы библиотека Go, CLI и HTTP-слой `FrontendAPI` с Bearer-авторизацией
+для демо. Запуск HTTP-сервера из общего main и корпоративная авторизация,
+SSE, frontend, чек-лист адаптации, mock корпоративных действий и reranker
+остаются интеграцией команды.
 SQL миграции адаптированы из `origin/RAG:postgres/001_rag_schema.sql`.
 Python-чанкер не переносился и ветка RAG не изменялась.
 
