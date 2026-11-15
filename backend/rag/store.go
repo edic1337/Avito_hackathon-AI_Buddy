@@ -22,7 +22,12 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
 		return err
 	}
 	defer conn.Release()
-	for _, name := range []string{"001_rag_schema.sql", "002_optional_token_count.sql"} {
+	for _, name := range []string{
+		"001_rag_schema.sql",
+		"002_optional_token_count.sql",
+		"003_provided_origin.sql",
+		"004_document_metadata.sql",
+	} {
 		body, err := migrations.ReadFile("migrations/" + name)
 		if err != nil {
 			return err
@@ -92,8 +97,8 @@ func (d Document) validate() error {
 	if _, err := roleRank(d.MinRole); err != nil {
 		return err
 	}
-	if d.Origin != "public" && d.Origin != "synthetic" {
-		return fmt.Errorf("origin must be public or synthetic")
+	if d.Origin != "public" && d.Origin != "synthetic" && d.Origin != "provided" {
+		return fmt.Errorf("origin must be public, synthetic or provided")
 	}
 	if d.Team != "" && strings.TrimSpace(d.Team) == "" {
 		return fmt.Errorf("team must not be whitespace")
