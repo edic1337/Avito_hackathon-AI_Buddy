@@ -1,0 +1,6 @@
+.env*
+.git
+.scratch
+*.wasm
+*.exe
+coverage.*

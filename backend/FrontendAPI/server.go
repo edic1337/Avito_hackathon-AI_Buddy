@@ -33,6 +33,10 @@ func NewHTTPServer(answerer Answerer, authenticate Authenticator) (*http.Server,
 	}
 	mux := http.NewServeMux()
 	mux.Handle("POST /question", handler)
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	})
 	return &http.Server{
 		Addr: net.JoinHostPort(host, port), Handler: mux,
 		ReadHeaderTimeout: 5 * time.Second,

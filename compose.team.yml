@@ -1,0 +1,69 @@
+name: ai-buddy-local
+x-api-env: &api-env
+  DATABASE_URL: postgresql://postgres:postgres@postgres:5432/avito_buddy?sslmode=disable
+  RAG_COLLECTION: avito-habr
+  RAG_CHUNKING_CONFIG: '{"tokenizer_model":"Qwen/Qwen3-Embedding-0.6B","target_tokens":300,"max_tokens":400,"overlap_tokens":40,"html_normalization_version":1}'
+  EMBEDDING_API_URL: http://embedder:80/v1/embeddings
+  HTTP_HOST: 0.0.0.0
+  HTTP_PORT: "8080"
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.1-pg17
+    environment:
+      POSTGRES_DB: avito_buddy
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "127.0.0.1:${RAG_DB_PORT:-65432}:5432"
+    volumes:
+      - rag_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d avito_buddy"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  embedder:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9
+    command: ["--model-id", "Qwen/Qwen3-Embedding-0.6B", "--dtype", "float32", "--max-batch-tokens", "512", "--max-batch-requests", "1", "--max-concurrent-requests", "2", "--tokenization-workers", "2"]
+    ports:
+      - "127.0.0.1:8081:80"
+    volumes:
+      - rag_models:/data
+  api:
+    build: ./backend
+    image: ai-buddy-api:local
+    env_file: .env.team
+    environment:
+      <<: *api-env
+      HTTP_DEMO_USERS: '{"${BUDDY_PROXY_TOKEN:?Run scripts/setup.ps1}":{"role":"intern","team":""}}'
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      embedder:
+        condition: service_started
+    restart: on-failure
+  frontend:
+    build: ./frontend
+    environment:
+      BUDDY_PROXY_TOKEN: ${BUDDY_PROXY_TOKEN:?Run scripts/setup.ps1}
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      - api
+  rag:
+    profiles: ["tools"]
+    image: ai-buddy-api:local
+    build: ./backend
+    env_file: .env.team
+    environment: *api-env
+    entrypoint: ["rag"]
+    volumes:
+      - ./embeddings:/data:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+volumes:
+  rag_postgres:
+  rag_models:

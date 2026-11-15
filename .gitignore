@@ -34,3 +34,8 @@ __pycache__/
 
 # Compressed export artifacts
 /embeddings/*.zip
+
+# Local delivery archives and frontend output
+/ai-buddy*.zip
+node_modules/
+dist/

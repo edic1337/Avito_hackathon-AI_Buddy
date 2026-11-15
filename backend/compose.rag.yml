@@ -14,13 +14,27 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
   embedder:
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9
-    command: ["--model-id", "Qwen/Qwen3-Embedding-0.6B", "--dtype", "float32"]
+    command:
+      - "--model-id"
+      - "Qwen/Qwen3-Embedding-0.6B"
+      - "--dtype"
+      - "float32"
+      - "--max-batch-tokens"
+      - "512"
+      - "--max-batch-requests"
+      - "1"
+      - "--max-concurrent-requests"
+      - "2"
+      - "--tokenization-workers"
+      - "2"
     ports:
       - "127.0.0.1:8081:80"
     volumes:
       - rag_models:/data
+
 volumes:
   rag_postgres:
   rag_models:

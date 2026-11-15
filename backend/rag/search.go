@@ -61,6 +61,9 @@ func (s *Store) Search(ctx context.Context, question string, vector []float32, a
 			return nil, err
 		}
 		label := "Открытый источник"
+		if strings.HasPrefix(source, "attachment:") {
+			label = "Загруженный документ базы знаний"
+		}
 		if origin == "synthetic" {
 			label = "Синтетическая тестовая инструкция, не регламент Авито"
 		}

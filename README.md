@@ -1,3 +1,7 @@
+# Запуск интегрированной версии
+
+См. [TEAM-START.md](TEAM-START.md): Docker Compose, импорт корпусов, настройка доступа и проверки.
+
 # Avito AI Buddy
 
 Go backend for chat and RAG: [backend setup](backend/README.md).
