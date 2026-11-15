@@ -1,0 +1,5 @@
+/.scratch/
+/coverage.out
+/coverage.html
+/*.test.wasm
+/*.test.exe
