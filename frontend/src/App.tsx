@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { MessageText } from './MessageText'
 import './App.css'
 
@@ -178,6 +178,46 @@ export default function App() {
   const [storageNotice, setStorageNotice] = useState('')
 
   const requestInProgress = useRef(false)
+  const mainRef = useRef<HTMLElement>(null)
+  const topbarRef = useRef<HTMLElement>(null)
+  const headingRef = useRef<HTMLElement>(null)
+  const historyRef = useRef<HTMLDivElement>(null)
+  const followLatest = useRef(false)
+
+  useLayoutEffect(() => {
+    const main = mainRef.current
+    const topbar = topbarRef.current
+    const heading = headingRef.current
+    if (!main || !topbar || !heading) return
+
+    // Keep the chat fitted to the viewport even when zoom wraps either header.
+    // On narrow screens the cards below it remain in the normal document flow.
+    const fitWorkspace = () => {
+      const bottomPadding =
+        Number.parseFloat(getComputedStyle(main).paddingBottom) || 0
+      const height =
+        window.innerHeight - topbar.offsetHeight - heading.offsetHeight - bottomPadding
+      main.style.setProperty('--workspace-height', `${Math.max(0, height)}px`)
+    }
+
+    fitWorkspace()
+    const observer = new ResizeObserver(fitWorkspace)
+    observer.observe(topbar)
+    observer.observe(heading)
+    window.addEventListener('resize', fitWorkspace)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', fitWorkspace)
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    const history = historyRef.current
+    if (history && followLatest.current) {
+      history.scrollTop = history.scrollHeight
+    }
+  }, [messages, isLoading, error])
 
   const completed = steps.filter((step) => step.done).length
   const progress = Math.round((completed / steps.length) * 100)
@@ -189,6 +229,7 @@ export default function App() {
     if (!question || requestInProgress.current) return
 
     requestInProgress.current = true
+    followLatest.current = true
     setIsLoading(true)
     setError('')
     setDraft('')
@@ -281,6 +322,8 @@ export default function App() {
   function resetChat() {
     if (requestInProgress.current) return
 
+    followLatest.current = false
+    if (historyRef.current) historyRef.current.scrollTop = 0
     setMessages(initialMessages)
     setDraft('')
     setError('')
@@ -289,38 +332,45 @@ export default function App() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <a className="brand" href="#main">
-          <span className="brand-symbol" aria-hidden="true">
-            b.
-          </span>
-          buddy<span className="brand-dot">●</span>
-        </a>
-
-        <div className="workspace-label">ТВОЁ НАЧАЛО В КОМАНДЕ</div>
-
-        <nav className="navigation" aria-label="Разделы">
-          <a className="nav-item active" href="#chat">
-            <span aria-hidden="true">✦</span> AI-помощник
+        <div
+          className="sidebar-content"
+          role="region"
+          aria-label="Меню Buddy"
+          tabIndex={0}
+        >
+          <a className="brand" href="#main">
+            <span className="brand-symbol" aria-hidden="true">
+              b.
+            </span>
+            buddy<span className="brand-dot">●</span>
           </a>
-          <a className="nav-item" href="#onboarding">
-            <span aria-hidden="true">✓</span> Моя адаптация
-          </a>
-        </nav>
 
-        <div className="sidebar-note">
-          <span className="note-symbol" aria-hidden="true">
-            ✳
-          </span>
-          <strong>
-            Большой путь.
-            <br />
-            Небольшие шаги.
-          </strong>
-          <p>Задавать вопросы — нормальная часть начала.</p>
+          <div className="workspace-label">ТВОЁ НАЧАЛО В КОМАНДЕ</div>
+
+          <nav className="navigation" aria-label="Разделы">
+            <a className="nav-item active" href="#chat">
+              <span aria-hidden="true">✦</span> AI-помощник
+            </a>
+            <a className="nav-item" href="#onboarding">
+              <span aria-hidden="true">✓</span> Моя адаптация
+            </a>
+          </nav>
+
+          <div className="sidebar-note">
+            <span className="note-symbol" aria-hidden="true">
+              ✳
+            </span>
+            <strong>
+              Большой путь.
+              <br />
+              Небольшие шаги.
+            </strong>
+            <p>Задавать вопросы — нормальная часть начала.</p>
+          </div>
         </div>
 
         <div className="profile">
-          <div className="avatar">С</div>
+          <div className="avatar" aria-hidden="true">С</div>
           <div>
             <strong>Стажёр</strong>
             <span>Демонстрационный профиль</span>
@@ -328,15 +378,15 @@ export default function App() {
         </div>
       </aside>
 
-      <main id="main" className="main">
-        <header className="topbar">
+      <main id="main" className="main" ref={mainRef}>
+        <header className="topbar" ref={topbarRef}>
           <span>
             Рабочее пространство / <strong>AI-помощник</strong>
           </span>
           <span className="demo-badge">Локальный API</span>
         </header>
 
-        <section className="page-heading">
+        <section className="page-heading" ref={headingRef}>
           <div>
             <div className="eyebrow">НАЧИНАЕМ ВМЕСТЕ</div>
             <h1>
@@ -375,7 +425,17 @@ export default function App() {
               </button>
             </header>
 
-            <div className="chat-body">
+            <div
+              className="chat-body"
+              ref={historyRef}
+              role="region"
+              aria-label="История чата"
+              tabIndex={0}
+              onScroll={(event) => {
+                const { scrollHeight, clientHeight, scrollTop } = event.currentTarget
+                followLatest.current = scrollHeight - clientHeight - scrollTop <= 24
+              }}
+            >
               <div className="conversation-label">
                 ЗНАКОМСТВО С BUDDY
               </div>
@@ -498,7 +558,12 @@ export default function App() {
             </form>
           </section>
 
-          <aside id="onboarding" className="onboarding">
+          <aside
+            id="onboarding"
+            className="onboarding"
+            aria-label="План адаптации"
+            tabIndex={0}
+          >
             <section className="progress-card">
               <div className="card-eyebrow">ТВОЙ МАРШРУТ</div>
               <h2>Первые шаги</h2>
