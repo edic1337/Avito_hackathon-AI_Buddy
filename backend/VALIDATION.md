@@ -79,9 +79,30 @@ node scripts/verify-sql.cjs $ragSqlRuntime
 | Порт хоста | `127.0.0.1:65432`; публикация на 5432 и 55432 запрещена политикой Windows |
 | `go run ./cmd/rag migrate` | обе миграции выполнены в Go 1.27.4 контейнере; созданы `rag.collections`, `rag.documents`, `rag.chunks`; `token_count` допускает NULL |
 | Права `avito_buddy_app` | connect, usage схемы, DML трёх таблиц и USAGE identity-последовательностей подтверждены запросами к PostgreSQL |
-| Go CLI `import` | реальный экспорт загружен приложенческой ролью; первая и повторная загрузки вернули document ID `1` |
+| Go CLI `import` | тестовый экспорт загружен приложенческой ролью; первая и повторная загрузки вернули document ID `1` |
 | Итог данных | один документ `playbook/ds-skills.md`, 50 чанков, metadata `synthetic` / `intern` / `team=NULL` |
 
 Go CLI запускался во временном Go 1.27.4 контейнере, потому что Go и `psql` не
 установлены на хосте. Полный набор Go unit/integration-тестов на этой ветке
 отдельно не запускался.
+
+## Импорт полных корпусов schema_version=2
+
+15 ноября 2026: ветки `origin/Backend` и `origin/RAG` объединены локально в `Date`.
+Локальные JSON в `embeddings/` не включены в Git.
+
+| Проверка | Результат |
+| --- | --- |
+| Локальная PostgreSQL | PostgreSQL 17.8, pgvector 0.8.1, база `avito_buddy`, localhost:65432 |
+| Миграции | Go CLI применил базовую схему, nullable token count, `origin=provided` и `documents.metadata` |
+| Предварительная проверка экспорта | Успешно: 871 документ, 16 413 чанков; структура, профили, хеши, позиции и векторы прошли проверку |
+| Импорт | 827 public Habr документов (15 633 чанка) + 44 provided документа (780 чанков) |
+| Векторы и FTS | `invalid_vectors=0`, нормы 0.99999997–1.00000003, `missing_fts=0` |
+| Дубликаты | Повторяющихся `source_key` и пар `(source_key, position)` нет |
+| Метаданные и ACL | 44 документа `provided`, остальные `public`; все `intern`, `team=NULL`; metadata периода и source_record читаются |
+| Права `avito_buddy_app` | SELECT/INSERT для таблиц и USAGE для identity-последовательности подтверждены |
+| Cosine smoke check | Самосовпадение similarity=1.0; это проверка оператора, не оценка качества retrieval |
+
+Импорт выполнен без повторного инференса. Полный Go test suite после добавления
+`import-corpus` не запускался; для компиляции и загрузки команда `go run` прошла.
+Публичный сетевой доступ к PostgreSQL не настраивался: база оставлена локальной.

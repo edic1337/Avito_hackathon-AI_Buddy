@@ -29,11 +29,14 @@ func main() {
 
 func run(ctx context.Context, args []string, out io.Writer) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: rag <migrate|ingest|import|search|ask> [flags]")
+		return fmt.Errorf("usage: rag <migrate|ingest|import|import-corpus|search|ask> [flags]")
 	}
 	flags := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	envFile := flags.String("env", "../.env", "optional .env path")
 	file := flags.String("file", "", "input JSON")
+	collectionName := flags.String("collection-name", "", "optional collection name override for import-corpus")
+	expectedDocuments := flags.Int("expected-documents", 0, "required corpus document count for import-corpus")
+	expectedChunks := flags.Int("expected-chunks", 0, "required corpus chunk count for import-corpus")
 	key := flags.String("source-key", "", "logical key for import")
 	question := flags.String("question", "", "question")
 	role := flags.String("role", "intern", "demo role: intern/buddy/manager")
@@ -43,11 +46,14 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		return err
 	}
 	switch args[0] {
-	case "migrate", "ingest", "import", "search", "ask":
+	case "migrate", "ingest", "import", "import-corpus", "search", "ask":
 	default:
 		return fmt.Errorf("unknown command %q", args[0])
 	}
-	if flags.NArg() != 0 {
+	if args[0] == "import-corpus" && flags.NArg() < 1 {
+		return fmt.Errorf("import-corpus requires one or more positional corpus JSON files")
+	}
+	if args[0] != "import-corpus" && flags.NArg() != 0 {
 		return fmt.Errorf("unexpected positional arguments")
 	}
 	if *timeout <= 0 {
@@ -69,6 +75,9 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 	defer pool.Close()
 	if args[0] == "migrate" {
 		return rag.Migrate(ctx, pool)
+	}
+	if args[0] == "import-corpus" {
+		return rag.ImportCorpusJSON(ctx, pool, flags.Args(), *collectionName, *expectedDocuments, *expectedChunks, out)
 	}
 	store, err := rag.OpenStore(ctx, pool, config)
 	if err != nil {

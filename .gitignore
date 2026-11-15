@@ -1,3 +1,36 @@
+# Local credentials
 .env
-test_main.go
+.env.*
 !.env.example
+
+# Go scratch and test outputs
+test_main.go
+/backend/.scratch/
+/backend/coverage.out
+/backend/coverage.html
+/backend/*.test.wasm
+/backend/*.test.exe
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.cache/
+.hf-cache/
+
+# Generated corpus exports and resumable computation
+/embeddings/*.json
+/embeddings.json
+*.checkpoints/
+*.log
+
+# Downloaded model weights
+*.safetensors
+*.pt
+*.pth
+*.onnx
+
+# Compressed export artifacts
+/embeddings/*.zip
