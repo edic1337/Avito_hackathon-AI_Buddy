@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -87,8 +88,18 @@ func askMessages(ctx context.Context, messages []apiMessage) (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("OpenRouter returned HTTP %d", resp.StatusCode)
+	errorBody, readErr := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if readErr != nil {
+		return "", fmt.Errorf(
+			"OpenRouter returned HTTP %d; reading error response: %w",
+			resp.StatusCode, readErr,
+		)
 	}
+	return "", fmt.Errorf(
+		"OpenRouter returned HTTP %d: %s",
+		resp.StatusCode, string(errorBody),
+	)
+}
 
 	var result chatResponse
 

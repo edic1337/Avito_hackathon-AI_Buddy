@@ -1,0 +1,8 @@
+# Install the correct CPU/CUDA PyTorch build first; see docs/PROJECT_GUIDE.md.
+# Model integration versions were exercised locally with PyTorch 2.11.0.
+sentence-transformers==5.5.1
+transformers==5.5.4
+markdown-it-py==4.3.0
+PyYAML>=6.0,<7.0
+beautifulsoup4>=4.12,<5
+python-dotenv>=1.0,<2.0
