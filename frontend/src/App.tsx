@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { MessageText } from './MessageText'
 import './App.css'
 
@@ -46,6 +46,10 @@ const suggestions = [
 ]
 
 const STEPS_KEY = 'buddy-onboarding-v1'
+
+function currentSection() {
+  return window.location.hash === '#onboarding' ? 'onboarding' : 'chat'
+}
 
 function loadSteps() {
   try {
@@ -170,6 +174,8 @@ function MessageSources({ sources }: { sources: Source[] }) {
 }
 
 export default function App() {
+  const [section, setSection] = useState(currentSection)
+  const isOnboarding = section === 'onboarding'
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [draft, setDraft] = useState('')
   const [steps, setSteps] = useState(loadSteps)
@@ -183,6 +189,20 @@ export default function App() {
   const headingRef = useRef<HTMLElement>(null)
   const historyRef = useRef<HTMLDivElement>(null)
   const followLatest = useRef(false)
+
+  useEffect(() => {
+    const navigate = () => setSection(currentSection())
+    window.addEventListener('hashchange', navigate)
+    return () => window.removeEventListener('hashchange', navigate)
+  }, [])
+
+  useLayoutEffect(() => {
+    // Move keyboard focus to the opened section, including browser Back/Forward.
+    if (window.location.hash) {
+      headingRef.current?.focus({ preventScroll: true })
+      window.scrollTo(0, 0)
+    }
+  }, [section])
 
   useLayoutEffect(() => {
     const main = mainRef.current
@@ -217,7 +237,7 @@ export default function App() {
     if (history && followLatest.current) {
       history.scrollTop = history.scrollHeight
     }
-  }, [messages, isLoading, error])
+  }, [messages, isLoading, error, section])
 
   const completed = steps.filter((step) => step.done).length
   const progress = Math.round((completed / steps.length) * 100)
@@ -348,10 +368,18 @@ export default function App() {
           <div className="workspace-label">ТВОЁ НАЧАЛО В КОМАНДЕ</div>
 
           <nav className="navigation" aria-label="Разделы">
-            <a className="nav-item active" href="#chat">
+            <a
+              className={`nav-item${!isOnboarding ? ' active' : ''}`}
+              href="#chat"
+              aria-current={!isOnboarding ? 'page' : undefined}
+            >
               <span aria-hidden="true">✦</span> AI-помощник
             </a>
-            <a className="nav-item" href="#onboarding">
+            <a
+              className={`nav-item${isOnboarding ? ' active' : ''}`}
+              href="#onboarding"
+              aria-current={isOnboarding ? 'page' : undefined}
+            >
               <span aria-hidden="true">✓</span> Моя адаптация
             </a>
           </nav>
@@ -381,29 +409,32 @@ export default function App() {
       <main id="main" className="main" ref={mainRef}>
         <header className="topbar" ref={topbarRef}>
           <span>
-            Рабочее пространство / <strong>AI-помощник</strong>
+            Рабочее пространство / <strong>{isOnboarding ? 'Моя адаптация' : 'AI-помощник'}</strong>
           </span>
           <span className="demo-badge">Локальный API</span>
         </header>
 
-        <section className="page-heading" ref={headingRef}>
+        <section className="page-heading" ref={headingRef} tabIndex={-1} aria-labelledby="page-title">
           <div>
             <div className="eyebrow">НАЧИНАЕМ ВМЕСТЕ</div>
-            <h1>
-              Осваивайся в своём темпе<span>.</span>
+            <h1 id="page-title">
+              {isOnboarding ? 'Моя адаптация' : 'Осваивайся в своём темпе'}<span>.</span>
             </h1>
-            <p>Меньше неопределённости. Больше понятных следующих шагов.</p>
+            <p>{isOnboarding
+              ? 'Отмечай выполненные шаги и следи за своим прогрессом.'
+              : 'Меньше неопределённости. Больше понятных следующих шагов.'}</p>
           </div>
           <div className="heading-art" aria-hidden="true">
             ✳
           </div>
         </section>
 
-        <div className="workspace">
+        <div className={`workspace${isOnboarding ? ' workspace--onboarding' : ''}`}>
           <section
             id="chat"
             className="chat-panel"
             aria-label="Чат с Buddy"
+            hidden={isOnboarding}
           >
             <header className="chat-header">
               <div className="buddy-avatar" aria-hidden="true">

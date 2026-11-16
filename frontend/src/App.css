@@ -5,6 +5,21 @@
   align-items: start;
 }
 
+.chat-panel[hidden] {
+  display: none;
+}
+
+.workspace.workspace--onboarding {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.workspace--onboarding .onboarding {
+  width: 100%;
+  max-width: 900px;
+  justify-self: center;
+}
+
 .sidebar {
   position: sticky;
   top: 0;
